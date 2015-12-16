@@ -1,3 +1,28 @@
+# returns a ChemmineR style FPset object for a given set of cids and targets
+bioactivityFingerprint <- function(bioassaySet, targets = FALSE, conflictResolver = "activesFirst"){
+  if(class(bioassaySet) != "bioassaySet")
+    stop("input not of class bioassaySet")
+  if(class(conflictResolver) != "function" && conflictResolver != "mode" && conflictResolver != "activesFirst")
+    stop("invalid conflict resolver option")
+  if(targets){
+      if(length(targets) < 1){
+        stop("target list must have at least one valid entry")  
+      }
+      if(is.numeric(targets)){
+        targets <- as.character(targets)
+      } else if(! is.character(targets)){
+        stop("targets not class numeric or character")
+      } 
+  } else {
+      targets <- allTargets(bioassaySet)
+  }
+  activityMatrix <- perTargetMatrix(bioassaySet, inactives = TRUE, targetOrder = targets, conflictResolver = conflictResolver)
+  binaryMatrix <- t(as.matrix(1*(activityMatrix > 1)))
+  fingerPrint <- as(binaryMatrix, "FPset")
+  slot(fingerPrint, "type") <- "bioactivity"
+  return(fingerPrint)
+}
+
 # lists all CIDS present in a BioassayDB, bioassay, bioassaySet, or target matrix (dgCMatrix) object
 allCids <- function(inputObject, activesOnly = FALSE){
     if(class(activesOnly) != "logical")
@@ -187,7 +212,7 @@ assaySetTargets <- function(assays){
 #   0 = untested or inconclusive
 #   1 = inactive
 #   2 = active in 1 or more assays (can still be inactive in some)
-perTargetMatrix <- function(assays, inactives = FALSE, assayTargets = FALSE, targetOrder = FALSE){
+perTargetMatrix <- function(assays, inactives = FALSE, assayTargets = FALSE, targetOrder = FALSE, conflictResolver = "activesFirst"){
     # check input sanity
     if(class(assays) != "bioassaySet")
         stop("database not of class bioassaySet")
@@ -201,6 +226,8 @@ perTargetMatrix <- function(assays, inactives = FALSE, assayTargets = FALSE, tar
         stop("targetOrder not of class character")
     if(is.logical(targetOrder) && isTRUE(targetOrder))
         stop("TRUE is an invalid option for targetOrder- it must be FALSE or character")
+    if(class(conflictResolver) != "function" && conflictResolver != "mode" && conflictResolver != "activesFirst")
+        stop("invalid conflict resolver option")
 
     message("Note: in this version active scores now use a 2 instead of a 1")
 
@@ -227,6 +254,22 @@ perTargetMatrix <- function(assays, inactives = FALSE, assayTargets = FALSE, tar
     cidsPerAssay <- cidsPerAssay[! is.na(targetsPerAssay)]
     activityScores <- coords[,3][! is.na(targetsPerAssay)]
     targetsPerAssay <- targetsPerAssay[! is.na(targetsPerAssay)]    
+
+    if(conflictResolver != "activesFirst"){
+        if(conflictResolver == "mode")
+            conflictResolver <- function(x) { as.numeric(names(which.max(table(x)))) }
+
+        # identify cid/target pairs that are duplicated and resolve according to specified rule
+        mergedPairs <- paste(cidsPerAssay, targetsPerAssay, sep="______")
+        duplicatedPairs <- duplicated(mergedPairs) | duplicated(mergedPairs, fromLast=TRUE)
+        if(sum(duplicatedPairs) > 0){
+            pairFactor <- factor(mergedPairs[duplicatedPairs], levels=unique(mergedPairs[duplicatedPairs]))
+            splitScores <- split(activityScores[duplicatedPairs], pairFactor)
+            resolvedScores <- sapply(splitScores, conflictResolver)
+            firstDuplicates <- duplicated(mergedPairs, fromLast=TRUE) & !duplicated(mergedPairs)
+            activityScores[firstDuplicates] <- resolvedScores
+        }
+    }
 
     # make cid/target pairs unique
     nonDuplicates <- ! duplicated(paste(cidsPerAssay, targetsPerAssay, sep="______"))
