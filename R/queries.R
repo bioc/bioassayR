@@ -311,6 +311,9 @@ getBioassaySetByCids <- function(database, cids){
     } else if(! is.character(cids)){
         stop("cids not class numeric or character")
     }
+    if(length(unique(cids)) != length(cids)){
+        stop("cid list contains duplicates")
+    }
 
     # create activity and score matrix
     result <- .activityByCids(database, cids)
