@@ -19,7 +19,7 @@ for a large reference database.
 \usage{
 crossReactivityProbability(inputMatrix, 
                             threshold=0.25,
-                            prior=list(hit_ratio_mean=0.126, hit_ratio_sd=0.1072))
+                            prior=list(hit_ratio_mean=0.0126, hit_ratio_sd=0.0375))
 crossReactivityPrior(database, minTargets=20, category=FALSE)
 }
 \arguments{
@@ -27,6 +27,8 @@ crossReactivityPrior(database, minTargets=20, category=FALSE)
     A \code{dgCMatrix} sparse matrix as computed by the \code{perTargetMatrix} function with the option
     \code{useNumericScores = FALSE}. The cross-reactivity probability will be computed for each compound
     (column) based on the active and inactive scores present.
+    In most cases, the matrix should be generated with \code{getBioassaySetByCids} rather than \code{getAssays},
+    so that it includes all relavent activity data for each compound, rather than a selected set of assays.
 }
   \item{threshold}{
     A \code{numeric} value between 0 and 1 reflecting the desired hit ratio cutoff for computing
@@ -40,7 +42,8 @@ crossReactivityPrior(database, minTargets=20, category=FALSE)
     the mean and standard deviation of hit ratios across a large reference database of
     highly-screened compounds. This can be generated with \code{crossReactivityPrior} and fed
     to \code{crossReactivityProbability}. Computing this for a large database can take a very long
-    time, so reasonable defaults are provided based on Dancik, V. et al. (see references).
+    time, so defaults are provided based on the April 6th 2016 version of the 
+    pre-built protein target only PubChem BioAssay database provided for use with bioassayR.
 }
   \item{database}{
     A \code{BioassayDB} database to query, for calculating a prior probability distribution.
@@ -80,8 +83,8 @@ extdata_dir <- system.file("extdata", package="bioassayR")
 sampleDatabasePath <- file.path(extdata_dir, "sampleDatabase.sqlite")
 sampleDB <- connectBioassayDB(sampleDatabasePath)
 
-## retrieve three assays
-assays <- getAssays(sampleDB, c("673509","103","105"))
+## retrieve activity data for three compounds
+assays <- getBioassaySetByCids(sampleDB, c("2244","3715","133021"))
 
 ## collapse assays into perTargetMatrix
 targetMatrix <- perTargetMatrix(assays)
