@@ -32,7 +32,7 @@ suppressPackageStartupMessages({
     library(biomaRt)
     library(ChemmineR)
     library(ggplot2)
-    library(cellHTS2)
+    #library(cellHTS2)
 })
 ```
 
@@ -660,7 +660,7 @@ binding data against a protein target as the data format is the same.
 
 First read in the screening data provided with cellHTS2.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE, message=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE, message=FALSE}
 library(cellHTS2)
 library(bioassayR)
 
@@ -684,27 +684,27 @@ xn <- normalizePlates(x,
 
 Next, score and summarize the replicates.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 xsc <- scoreReplicates(xn, sign="-", method="zscore")
 xsc <- summarizeReplicates(xsc, summary="mean")
 ```
 
 Parse the annotation data.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 xsc <- annotate(xsc, geneIDFile="GeneIDs_Dm_HFA_1.1.txt", path=dataPath)
 ```
 
 Apply a sigmoidal transformation to generate binary calls.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 y <- scores2calls(xsc, z0=1.5, lambda=2)
 binaryCalls <- round(Data(y))
 ```
 
 Convert the binary calls into an activity table that *bioassayR* can parse.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 scoreDataFrame <- cbind(geneAnno(y), binaryCalls)
 rawScores <- as.vector(Data(xsc))
 rawScores <- rawScores[wellAnno(y) == "sample"]
@@ -717,7 +717,7 @@ activityTable[1:10,]
 
 Create a new (temporary in this case) *bioassayR* database to load these data into.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 myDatabaseFilename <- tempfile() 
 mydb <- newBioassayDB(myDatabaseFilename, indexed=F)
 addDataSource(mydb, description="other", version="unknown")
@@ -725,7 +725,7 @@ addDataSource(mydb, description="other", version="unknown")
 
 Create an assay object for the new assay.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 myAssay <- new("bioassay",aid="1", source_id="other",
      assay_type="confirmatory", organism="unknown", scoring="activity rank", 
      targets="2224444", target_types="protein", scores=activityTable)
@@ -733,7 +733,7 @@ myAssay <- new("bioassay",aid="1", source_id="other",
 
 Load this assay object into the *bioassayR* database.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 loadBioassay(mydb, myAssay)
 mydb
 ```
@@ -742,11 +742,11 @@ Now that these data are loaded, you can use them to perform any of the other ana
 
 Lastly, for the purposes of this example, disconnect from the example database.
 
-```{r eval=TRUE, warning=FALSE, tidy=FALSE}
+```{r eval=FALSE, warning=FALSE, tidy=FALSE}
 disconnectBioassayDB(mydb)
 ```
 
-```{r eval=TRUE, warning=FALSE, echo=FALSE}
+```{r eval=FALSE, warning=FALSE, echo=FALSE}
 # delete temporary database
 unlink(myDatabaseFilename)
 ```
